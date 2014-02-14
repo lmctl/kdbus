@@ -34,7 +34,7 @@ static void *run_thread(void *data)
 	if (fd.revents & POLLIN) {
 		printf("Thread received message, sending reply ...\n");
 		msg_recv(conn_a);
-		msg_send(conn_a, NULL, 0, 0, cookie, 0, conn_b->id);
+		msg_send(conn_a, NULL, 0, 0, cookie, 0, conn_b->id, 0, 0);
 	}
 
 	return NULL;
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
 	pthread_create(&thread, NULL, run_thread, NULL);
 
 	msg_send(conn_b, NULL, cookie, KDBUS_MSG_FLAGS_EXPECT_REPLY | KDBUS_MSG_FLAGS_SYNC_REPLY,
-		 5000000000ULL, 0, conn_a->id);
+		 5000000000ULL, 0, conn_a->id, 0, 0);
 
 	printf("-- closing bus connections\n");
 	close(conn_a->fd);
