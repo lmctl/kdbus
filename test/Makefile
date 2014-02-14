@@ -20,6 +20,7 @@ TESTS= \
 	test-kdbus-chat \
 	test-kdbus-timeout \
 	test-kdbus-sync \
+	test-kdbus-send \
 	test-kdbus-prio
 
 all: $(TESTS)

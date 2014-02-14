@@ -103,19 +103,19 @@ static int run_test(void)
 		return EXIT_FAILURE;
 
 	cookie = 0;
-	msg_send(conn_b, NULL, ++cookie, 0, 0,   25, conn_a->id);
-	msg_send(conn_b, NULL, ++cookie, 0, 0, -600, conn_a->id);
-	msg_send(conn_b, NULL, ++cookie, 0, 0,   10, conn_a->id);
-	msg_send(conn_b, NULL, ++cookie, 0, 0,  -35, conn_a->id);
-	msg_send(conn_b, NULL, ++cookie, 0, 0, -100, conn_a->id);
-	msg_send(conn_b, NULL, ++cookie, 0, 0,   20, conn_a->id);
-	msg_send(conn_b, NULL, ++cookie, 0, 0,  -15, conn_a->id);
-	msg_send(conn_b, NULL, ++cookie, 0, 0, -800, conn_a->id);
-	msg_send(conn_b, NULL, ++cookie, 0, 0, -150, conn_a->id);
-	msg_send(conn_b, NULL, ++cookie, 0, 0, -150, conn_a->id);
-	msg_send(conn_b, NULL, ++cookie, 0, 0,   10, conn_a->id);
-	msg_send(conn_b, NULL, ++cookie, 0, 0, -800, conn_a->id);
-	msg_send(conn_b, NULL, ++cookie, 0, 0,  -10, conn_a->id);
+	msg_send(conn_b, NULL, ++cookie, 0, 0,   25, conn_a->id, 0, 0);
+	msg_send(conn_b, NULL, ++cookie, 0, 0, -600, conn_a->id, 0, 0);
+	msg_send(conn_b, NULL, ++cookie, 0, 0,   10, conn_a->id, 0, 0);
+	msg_send(conn_b, NULL, ++cookie, 0, 0,  -35, conn_a->id, 0, 0);
+	msg_send(conn_b, NULL, ++cookie, 0, 0, -100, conn_a->id, 0, 0);
+	msg_send(conn_b, NULL, ++cookie, 0, 0,   20, conn_a->id, 0, 0);
+	msg_send(conn_b, NULL, ++cookie, 0, 0,  -15, conn_a->id, 0, 0);
+	msg_send(conn_b, NULL, ++cookie, 0, 0, -800, conn_a->id, 0, 0);
+	msg_send(conn_b, NULL, ++cookie, 0, 0, -150, conn_a->id, 0, 0);
+	msg_send(conn_b, NULL, ++cookie, 0, 0, -150, conn_a->id, 0, 0);
+	msg_send(conn_b, NULL, ++cookie, 0, 0,   10, conn_a->id, 0, 0);
+	msg_send(conn_b, NULL, ++cookie, 0, 0, -800, conn_a->id, 0, 0);
+	msg_send(conn_b, NULL, ++cookie, 0, 0,  -10, conn_a->id, 0, 0);
 
 	printf("--- get priority -200\n");
 	for (;;) {
