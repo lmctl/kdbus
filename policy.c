@@ -20,6 +20,7 @@
 #include <linux/sizes.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
+#include <linux/security.h>
 
 #include "connection.h"
 #include "names.h"
@@ -200,7 +201,7 @@ static int __kdbus_policy_db_check_send_access(struct kdbus_policy_db *db,
 
 			access = kdbus_collect_entry_accesses(db_entry, conn_src);
 			if (access & KDBUS_POLICY_SEND) {
-				ret = 0;
+				ret = security_kdbus_may_send(conn_src, conn_dst);
 				break;
 			}
 		}
@@ -219,7 +220,7 @@ static int __kdbus_policy_db_check_send_access(struct kdbus_policy_db *db,
 
 			access = kdbus_collect_entry_accesses(db_entry, conn_dst);
 			if (access & KDBUS_POLICY_RECV) {
-				ret = 0;
+				ret = security_kdbus_may_recv(conn_src, conn_dst);
 				break;
 			}
 		}

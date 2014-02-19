@@ -24,6 +24,7 @@
 #include <linux/sizes.h>
 #include <linux/slab.h>
 #include <linux/syscalls.h>
+#include <linux/security.h>
 
 #include "bus.h"
 #include "connection.h"
@@ -1397,6 +1398,7 @@ static void __kdbus_conn_free(struct kref *kref)
 	kdbus_match_db_free(conn->match_db);
 	kdbus_pool_free(conn->pool);
 	kdbus_ep_unref(conn->ep);
+	security_kdbus_free_security(conn);
 	kfree(conn->name);
 	kfree(conn);
 }
@@ -1867,11 +1869,15 @@ int kdbus_conn_new(struct kdbus_ep *ep,
 		goto exit_free_meta;
 	}
 
+	ret = security_kdbus_alloc_security(conn);
+	if (ret < 0)
+	     goto exit_unref_user;
+
 	if (!capable(CAP_IPC_OWNER) &&
 	    atomic_inc_return(&conn->user->connections) > KDBUS_USER_MAX_CONN) {
 		atomic_dec(&conn->user->connections);
 		ret = -EMFILE;
-		goto exit_unref_user;
+		goto exit_free_security;
 	}
 
 	/* link into bus */
@@ -1882,6 +1888,8 @@ int kdbus_conn_new(struct kdbus_ep *ep,
 	*c = conn;
 	return 0;
 
+exit_free_security:
+	security_kdbus_free_security(conn);
 exit_unref_user:
 	kdbus_ns_user_unref(conn->user);
 exit_free_meta:
