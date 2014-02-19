@@ -78,6 +78,7 @@ struct kdbus_conn {
 	unsigned int msg_count;
 	struct kdbus_pool *pool;
 	struct kdbus_ns_user *user;
+	void *kdbus_security;
 };
 
 struct kdbus_kmsg;
