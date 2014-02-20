@@ -781,6 +781,12 @@ static int kdbus_conn_fds_install(struct kdbus_conn *conn,
 	int *fds;
 	int ret;
 
+	for (i = 0; i < queue->fds_count; i++) {
+		ret = security_file_receive(queue->fds_fp[i]);
+		if (!ret)
+			return ret;
+	}
+
 	/* get array of file descriptors */
 	size = queue->fds_count * sizeof(int);
 	fds = kmalloc(size, GFP_KERNEL);
