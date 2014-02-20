@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 	if (!conn)
 		return EXIT_FAILURE;
 
-	ret = msg_send(conn, "com.example.kdbus-test", 0xc0000000, 0, 0, 0, 0);
+	ret = msg_send(conn, "com.example.kdbus-test", 0xc0000000, 0, 0, 0, 0, 0, 0);
 	printf("msg_sent returned %d (errno=%d/%s)\n", ret, errno, strerror(errno));
 
 	close(conn->fd);

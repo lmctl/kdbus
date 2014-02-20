@@ -99,12 +99,14 @@ struct conn *connect_to_bus(const char *path, uint64_t hello_flags)
 }
 
 int msg_send(const struct conn *conn,
-		    const char *name,
-		    uint64_t cookie,
-		    uint64_t flags,
-		    uint64_t timeout,
-		    int64_t priority,
-		    uint64_t dst_id)
+	     const char *name,
+	     uint64_t cookie,
+	     uint64_t flags,
+	     uint64_t timeout,
+	     int64_t priority,
+	     uint64_t dst_id,
+	     int fds_count,
+	     int fds[])
 {
 	struct kdbus_msg *msg;
 	const char ref1[1024 * 1024 + 3] = "0123456789_0";
@@ -118,6 +120,7 @@ int msg_send(const struct conn *conn,
 	size += KDBUS_ITEM_SIZE(sizeof(struct kdbus_vec));
 	size += KDBUS_ITEM_SIZE(sizeof(struct kdbus_vec));
 	size += KDBUS_ITEM_SIZE(sizeof(struct kdbus_vec));
+	size += fds_count > 0 ? KDBUS_ITEM_SIZE(sizeof(int) * fds_count) : 0;
 
 	if (dst_id == KDBUS_DST_ID_BROADCAST)
 		size += KDBUS_ITEM_HEADER_SIZE + 64;
@@ -212,6 +215,13 @@ int msg_send(const struct conn *conn,
 		item->memfd.fd = memfd;
 	}
 	item = KDBUS_ITEM_NEXT(item);
+
+	if (fds_count > 0) {
+		item->type = KDBUS_ITEM_FDS;
+		item->size = KDBUS_ITEM_HEADER_SIZE + sizeof(int) * fds_count;
+		memcpy(&item->fds, fds, sizeof(int) * fds_count);
+		item = KDBUS_ITEM_NEXT(item);
+	}
 
 	ret = ioctl(conn->fd, KDBUS_CMD_MSG_SEND, msg);
 	if (ret < 0) {

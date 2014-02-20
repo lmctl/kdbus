@@ -104,7 +104,7 @@ static int run_test(void)
 	/* send messages that expect a reply (within 1 sec), but never answer it */
 	for (i = 0; i < n_msgs; i++) {
 		printf("Sending message with cookie %u ...\n", i);
-		msg_send(conn_b, NULL, i, KDBUS_MSG_FLAGS_EXPECT_REPLY, (i + 1) * 100ULL * 1000ULL, 0, conn_a->id);
+		msg_send(conn_b, NULL, i, KDBUS_MSG_FLAGS_EXPECT_REPLY, (i + 1) * 100ULL * 1000ULL, 0, conn_a->id, 0, 0);
 		expected |= 1ULL << i;
 	}
 
