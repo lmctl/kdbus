@@ -21,6 +21,8 @@ int main(int argc, char *argv[])
 	int ret;
 	char *bus;
 	struct conn *conn;
+	int serial = 1;
+	int fds[3];
 
 	if (asprintf(&bus, "/dev/" KBUILD_MODNAME "/%u-testbus/bus", getuid()) < 0)
 		return EXIT_FAILURE;
@@ -29,8 +31,30 @@ int main(int argc, char *argv[])
 	if (!conn)
 		return EXIT_FAILURE;
 
-	ret = msg_send(conn, "com.example.kdbus-test", 0xc0000000, 0, 0, 0, 0, 0, 0);
-	printf("msg_sent returned %d (errno=%d/%s)\n", ret, errno, strerror(errno));
+	fds[0] = open("data/file1", O_RDONLY);
+	fds[1] = open("data/file2", O_WRONLY);
+	fds[2] = open("data/file3", O_RDWR);
+
+	for (i = 0; i < ELEMENTSOF(fds); i++) {
+	     fprintf("Unable to open data/fileN file(s)\n");
+	     return EXIT_FAILURE;
+	}
+
+	ret = msg_send(conn, "com.example.kdbus-test", serial++, 0, 0, 0, 0, 0, 0);
+	if (ret < 0)
+	     fprintf(stderr, "error sending simple message: %d (%m)\n", ret);
+
+	ret = msg_send(conn, "com.example.kdbus-test", serial++, 0, 0, 0, 0, 1, fds);
+	if (ret < 0)
+	     fprintf(stderr, "error sending message with 1 fd: %d (%m)\n", ret);
+
+	ret = msg_send(conn, "com.example.kdbus-test", serial++, 0, 0, 0, 0, 2, fds);
+	if (ret < 0)
+	     fprintf(stderr, "error sending message with 2 fds: %d (%m)\n", ret);
+
+	ret = msg_send(conn, "com.example.kdbus-test", serial++, 0, 0, 0, 0, 3, fds);
+	if (ret < 0)
+	     fprintf(stderr, "error sending message with 3 fds: %d (%m)\n", ret);
 
 	close(conn->fd);
 	free(conn);
