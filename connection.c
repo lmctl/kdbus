@@ -1404,7 +1404,7 @@ static void __kdbus_conn_free(struct kref *kref)
 	kdbus_match_db_free(conn->match_db);
 	kdbus_pool_free(conn->pool);
 	kdbus_ep_unref(conn->ep);
-	security_kdbus_free_security(conn);
+	security_kdbus_free(conn);
 	kfree(conn->name);
 	kfree(conn);
 }
@@ -1875,7 +1875,7 @@ int kdbus_conn_new(struct kdbus_ep *ep,
 		goto exit_free_meta;
 	}
 
-	ret = security_kdbus_alloc_security(conn);
+	ret = security_kdbus_alloc(conn);
 	if (ret < 0)
 	     goto exit_unref_user;
 
@@ -1895,7 +1895,7 @@ int kdbus_conn_new(struct kdbus_ep *ep,
 	return 0;
 
 exit_free_security:
-	security_kdbus_free_security(conn);
+	security_kdbus_free(conn);
 exit_unref_user:
 	kdbus_ns_user_unref(conn->user);
 exit_free_meta:
