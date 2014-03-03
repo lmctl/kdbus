@@ -835,6 +835,13 @@ static int kdbus_conn_memfds_install(struct kdbus_conn *conn,
 	unsigned int i;
 	int ret = 0;
 
+	for (i = 0; i < queue->memfds_count; i++) {
+		ret = security_file_receive(queue->memfds_fp[i]);
+		if (!ret)
+			return ret;
+	}
+
+
 	size = queue->memfds_count * sizeof(int);
 	fds = kmalloc(size, GFP_KERNEL);
 	if (!fds)
