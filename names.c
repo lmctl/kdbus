@@ -21,6 +21,7 @@
 #include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
+#include <linux/security.h>
 
 #include "bus.h"
 #include "connection.h"
@@ -572,6 +573,10 @@ int kdbus_cmd_name_acquire(struct kdbus_name_registry *reg,
 	} else {
 		kdbus_conn_ref(conn);
 	}
+
+	ret = security_kdbus_name_acquire(conn, cmd_name->name);
+	if (ret < 0)
+		goto exit_free;
 
 	hash = kdbus_str_hash(cmd_name->name);
 
