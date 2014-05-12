@@ -19,6 +19,7 @@
 #include <linux/sizes.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
+#include <linux/security.h>
 
 #include "connection.h"
 #include "bus.h"
@@ -232,6 +233,10 @@ int kdbus_ep_new(struct kdbus_bus *bus, const char *name,
 			goto exit_dev_unregister;
 	}
 
+	ret = security_kdbus_ep_create(bus);
+	if (ret)
+		goto exit_policy_db_free;
+
 	/* link into bus  */
 	mutex_lock(&bus->lock);
 	if (bus->disconnected) {
@@ -276,11 +281,17 @@ int kdbus_ep_policy_set(struct kdbus_ep *ep,
 			const struct kdbus_item *items,
 			size_t items_size)
 {
+	int ret;
+
 	if (!ep->policy_db)
 		return -ENOTSUPP;
 
 	if (items_size == 0)
 		return 0;
+
+	ret = security_kdbus_ep_setpolicy(ep->bus);
+	if (ret)
+		return ret;
 
 	return kdbus_policy_set(ep->policy_db, items, items_size,
 				0, true, ep);

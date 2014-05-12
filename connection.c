@@ -25,6 +25,7 @@
 #include <linux/sizes.h>
 #include <linux/slab.h>
 #include <linux/syscalls.h>
+#include <linux/security.h>
 
 #include "bus.h"
 #include "connection.h"
@@ -848,6 +849,12 @@ static int kdbus_conn_fds_install(struct kdbus_conn *conn,
 	int ret, *fds;
 	size_t size;
 
+	for (i = 0; i < queue->fds_count; i++) {
+		ret = security_file_receive(queue->fds_fp[i]);
+		if (ret)
+			return ret;
+	}
+
 	/* get array of file descriptors */
 	size = queue->fds_count * sizeof(int);
 	fds = kmalloc(size, GFP_KERNEL);
@@ -895,6 +902,13 @@ static int kdbus_conn_memfds_install(struct kdbus_conn *conn,
 	unsigned int i;
 	size_t size;
 	int ret = 0;
+
+	for (i = 0; i < queue->memfds_count; i++) {
+		ret = security_file_receive(queue->memfds_fp[i]);
+		if (ret)
+			return ret;
+	}
+
 
 	size = queue->memfds_count * sizeof(int);
 	fds = kmalloc(size, GFP_KERNEL);
@@ -991,6 +1005,10 @@ int kdbus_cmd_msg_recv(struct kdbus_conn *conn,
 	struct kdbus_conn_queue *queue = NULL;
 	LIST_HEAD(notify_list);
 	int ret = 0;
+
+	ret = security_kdbus_recv(conn, conn->ep->bus);
+	if (ret)
+		return ret;
 
 	mutex_lock(&conn->lock);
 	if (conn->msg_count == 0) {
@@ -1140,6 +1158,10 @@ int kdbus_conn_kmsg_send(struct kdbus_ep *ep,
 	bool sync = msg->flags & KDBUS_MSG_FLAGS_SYNC_REPLY;
 	int ret;
 
+	ret = security_kdbus_send(conn_src, bus);
+	if (ret)
+		return ret;
+
 	/* assign domain-global message sequence number */
 	BUG_ON(kmsg->seq > 0);
 	kmsg->seq = atomic64_inc_return(&bus->domain->msg_seq_last);
@@ -1197,6 +1219,10 @@ int kdbus_conn_kmsg_send(struct kdbus_ep *ep,
 	/* For kernel-generated messages, skip the reply logic */
 	if (!conn_src)
 		goto meta_append;
+
+	ret = security_kdbus_talk(conn_src, conn_dst);
+	if (ret)
+		return ret;
 
 	if (msg->flags & KDBUS_MSG_FLAGS_EXPECT_REPLY) {
 		struct timespec ts;
@@ -1591,6 +1617,7 @@ static void __kdbus_conn_free(struct kref *kref)
 	kdbus_pool_free(conn->pool);
 	kdbus_ep_unref(conn->ep);
 	kdbus_bus_unref(conn->bus);
+	security_kdbus_conn_free(conn);
 	kfree(conn->name);
 	kfree(conn);
 }
@@ -1735,6 +1762,10 @@ int kdbus_cmd_conn_info(struct kdbus_conn *conn,
 		mutex_unlock(&conn->bus->lock);
 	}
 
+	ret = security_kdbus_conn_info(conn);
+	if (ret)
+		goto exit;
+
 	/*
 	 * If a lookup by name was requested, set owner_conn to the
 	 * matching entry's connection pointer. Otherwise, owner_conn
@@ -1864,6 +1895,10 @@ int kdbus_cmd_conn_update(struct kdbus_conn *conn,
 			return ret;
 	}
 
+	ret = security_kdbus_ep_setpolicy(conn->bus);
+	if (ret)
+		return ret;
+
 	ret = kdbus_policy_set(conn->bus->policy_db, cmd->items,
 			       KDBUS_ITEMS_SIZE(cmd, items),
 			       1, false, conn);
@@ -1897,6 +1932,8 @@ int kdbus_conn_new(struct kdbus_ep *ep,
 	bool is_policy_holder;
 	bool is_activator;
 	bool is_monitor;
+	u32 len, sid;
+	char *label;
 	int ret;
 
 	bus = ep->bus;
@@ -1988,6 +2025,10 @@ int kdbus_conn_new(struct kdbus_ep *ep,
 			if (ret < 0)
 				goto exit_free_conn;
 		}
+
+		ret = security_kdbus_ep_setpolicy(bus);
+		if (ret)
+			goto exit_free_conn;
 
 		/*
 		 * Policy holders may install any number of names, and
@@ -2086,6 +2127,7 @@ int kdbus_conn_new(struct kdbus_ep *ep,
 		}
 
 		if (seclabel) {
+			/* XXX - this needs investigation, relabel?  -- Paul */
 			ret = kdbus_meta_append_data(conn->owner_meta,
 						     KDBUS_ITEM_SECLABEL,
 						     seclabel, seclabel_len);
@@ -2129,6 +2171,12 @@ int kdbus_conn_new(struct kdbus_ep *ep,
 		ret = -EMFILE;
 		goto exit_unref_user_unlock;
 	}
+
+	security_task_getsecid(current, &sid);
+	security_secid_to_secctx(sid, &label, &len);
+	ret = security_kdbus_connect(conn, label, len);
+	if (ret < 0)
+		goto exit_unref_user_unlock;
 
 	/* link into bus and endpoint */
 	list_add_tail(&conn->ep_entry, &ep->conn_list);

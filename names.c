@@ -21,6 +21,7 @@
 #include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
+#include <linux/security.h>
 
 #include "bus.h"
 #include "connection.h"
@@ -617,6 +618,10 @@ int kdbus_cmd_name_acquire(struct kdbus_name_registry *reg,
 		kdbus_conn_ref(conn);
 	}
 
+	ret = security_kdbus_name_acquire(conn, cmd->name);
+	if (ret < 0)
+		goto exit_unref_conn;
+
 	if (conn->bus->policy_db) {
 		ret = kdbus_policy_check_own_access(conn->bus->policy_db,
 						    conn, cmd->name);
@@ -858,6 +863,10 @@ int kdbus_cmd_name_list(struct kdbus_name_registry *reg,
 	int ret;
 
 	policy_db = conn->ep->policy_db;
+
+	ret = security_kdbus_name_list(conn->bus);
+	if (ret)
+		return ret;
 
 	/* lock order: domain -> bus -> ep -> names -> conn */
 	mutex_lock(&conn->bus->lock);

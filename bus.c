@@ -21,6 +21,7 @@
 #include <linux/sizes.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
+#include <linux/security.h>
 
 #include "bus.h"
 #include "connection.h"
@@ -78,6 +79,7 @@ static void __kdbus_bus_free(struct kref *kref)
 	kdbus_name_registry_free(bus->name_registry);
 	kdbus_domain_unref(bus->domain);
 	kdbus_policy_db_free(bus->policy_db);
+	security_kdbus_bus_free(bus);
 	kfree(bus->name);
 	kfree(bus);
 }
@@ -259,9 +261,13 @@ int kdbus_bus_new(struct kdbus_domain *domain,
 	if (ret < 0)
 		goto exit_free_name;
 
+	ret = security_kdbus_bus_alloc(b);
+	if (ret)
+		goto exit_free_reg;
+
 	ret = kdbus_ep_new(b, "bus", mode, uid, gid, false, &b->ep);
 	if (ret < 0)
-		goto exit_free_reg;
+		goto exit_free_security;
 
 	/* account the bus against the user */
 	b->user = kdbus_domain_user_find_or_new(domain, uid);
@@ -296,6 +302,8 @@ exit_unref_user_unlock:
 	kdbus_domain_user_unref(b->user);
 exit_ep_unref:
 	kdbus_ep_unref(b->ep);
+exit_free_security:
+	security_kdbus_bus_free(b);
 exit_free_reg:
 	kdbus_name_registry_free(b->name_registry);
 exit_free_name:

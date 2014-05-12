@@ -19,6 +19,7 @@
 #include <linux/sizes.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
+#include <linux/security.h>
 
 #include "bus.h"
 #include "defaults.h"
@@ -166,6 +167,7 @@ static void __kdbus_domain_free(struct kref *kref)
 
 	kdbus_domain_disconnect(domain);
 	kdbus_domain_unref(domain->parent);
+	security_kdbus_domain_free(domain);
 	kfree(domain->name);
 	kfree(domain->devpath);
 	kfree(domain);
@@ -262,12 +264,17 @@ int kdbus_domain_new(struct kdbus_domain *parent, const char *name,
 	atomic64_set(&d->msg_seq_last, 0);
 	idr_init(&d->user_idr);
 
+	ret = security_kdbus_domain_alloc(d);
+	if (ret)
+		return ret;
+
 	/* lock order: parent domain -> domain -> subsys_lock */
 	if (parent) {
 		mutex_lock(&parent->lock);
 		if (parent->disconnected) {
 			mutex_unlock(&parent->lock);
-			return -ESHUTDOWN;
+			ret = -ESHUTDOWN;
+			goto exit_free_security;
 		}
 	}
 
@@ -363,6 +370,9 @@ exit_unlock:
 	if (parent)
 		mutex_unlock(&parent->lock);
 	kdbus_domain_unref(d);
+exit_free_security:
+	security_kdbus_domain_free(d);
+
 	return ret;
 }
 
@@ -486,7 +496,7 @@ static void __kdbus_domain_user_free(struct kref *kref)
 	idr_remove(&user->domain->user_idr, user->idr);
 	hash_del(&user->hentry);
 	mutex_unlock(&user->domain->lock);
-
+	security_kdbus_domain_free(user->domain);
 	kdbus_domain_unref(user->domain);
 	kfree(user);
 }
