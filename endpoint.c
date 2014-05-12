@@ -19,6 +19,7 @@
 #include <linux/sizes.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
+#include <linux/security.h>
 
 #include "connection.h"
 #include "bus.h"
@@ -116,6 +117,7 @@ static void __kdbus_ep_free(struct kref *kref)
 	BUG_ON(!list_empty(&ep->conn_list));
 
 	kdbus_ep_disconnect(ep);
+	security_kdbus_ep_free(ep);
 	kdbus_policy_db_free(ep->policy_db);
 	kdbus_bus_unref(ep->bus);
 	kdbus_domain_user_unref(ep->user);
@@ -232,12 +234,16 @@ int kdbus_ep_new(struct kdbus_bus *bus, const char *name,
 			goto exit_dev_unregister;
 	}
 
+	ret = security_kdbus_ep_alloc(e);
+	if (ret)
+		goto exit_policy_db_free;
+
 	/* link into bus  */
 	mutex_lock(&bus->lock);
 	if (bus->disconnected) {
 		mutex_unlock(&bus->lock);
 		ret = -ESHUTDOWN;
-		goto exit_policy_db_free;
+		goto exit_ep_security_free;
 	}
 	e->id = ++bus->ep_seq_last;
 	e->bus = kdbus_bus_ref(bus);
@@ -248,6 +254,8 @@ int kdbus_ep_new(struct kdbus_bus *bus, const char *name,
 		*ep = e;
 	return 0;
 
+exit_ep_security_free:
+	security_kdbus_ep_free(e);
 exit_policy_db_free:
 	if (policy)
 		kdbus_policy_db_free(e->policy_db);

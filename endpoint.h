@@ -54,6 +54,7 @@ struct kdbus_ep {
 	struct mutex lock;
 	struct kdbus_domain_user *user;
 	struct kdbus_policy_db *policy_db;
+	void *security;
 };
 
 int kdbus_ep_new(struct kdbus_bus *bus, const char *name,

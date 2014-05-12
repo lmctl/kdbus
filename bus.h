@@ -41,6 +41,7 @@
  * @id128:		Unique random 128 bit ID of this bus
  * @user:		Owner of the connection
  * @policy_db:		Policy database for this bus
+ * @security:		LSM security blob
  *
  * A bus provides a "bus" endpoint / device node.
  *
@@ -70,6 +71,7 @@ struct kdbus_bus {
 	u8 id128[16];
 	struct kdbus_domain_user *user;
 	struct kdbus_policy_db *policy_db;
+	void *security;
 };
 
 int kdbus_bus_make_user(const struct kdbus_cmd_make *make,

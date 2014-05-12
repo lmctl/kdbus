@@ -66,6 +66,7 @@ struct kdbus_domain {
 	struct list_head bus_list;
 	DECLARE_HASHTABLE(user_hash, 6);
 	struct idr user_idr;
+	void *security;
 };
 
 /**

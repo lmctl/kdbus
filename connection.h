@@ -58,6 +58,7 @@
  * @reply_count:	Number of requests this connection has issued, and
  *			waits for replies from the peer
  * @wait:		Wake up this endpoint
+ * @security:		LSM security blob
  */
 struct kdbus_conn {
 	struct kref kref;
@@ -92,6 +93,7 @@ struct kdbus_conn {
 	size_t msg_count;
 	atomic_t reply_count;
 	wait_queue_head_t wait;
+	void *security;
 };
 
 struct kdbus_kmsg;
